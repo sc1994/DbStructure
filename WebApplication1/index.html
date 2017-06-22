@@ -1,0 +1,193 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title></title>
+    <link href="index.css" rel="stylesheet" />
+    <meta charset="utf-8" />
+</head>
+
+<style>
+    .demo-block {
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        transition: .2s;
+        padding: 24px;
+    }
+
+    div {
+        display: block;
+    }
+
+    body {
+        font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, SimSun, sans-serif;
+        overflow: auto;
+        font-weight: 400;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .el-tabs__header {
+        width: 88%;
+    }
+</style>
+
+<body>
+    <div id="app" class="demo-block demo-box demo-zh-CN demo-layout">
+        <el-row :gutter="20">
+            <el-col :span="6">
+                <el-input placeholder="输入关键字进行过滤" v-model="filterText" style="margin-bottom: 20px">
+                </el-input>
+                <el-tree class="filter-tree" :data="dataTree" :props="{ children: 'children',label: 'label'}" :filter-node-method="filterNode"
+                    @node-expand="loadchile" @node-click="loadtableinfo" accordion ref="tree2" highlight-current :expand-on-click-node="false">
+                </el-tree>
+            </el-col>
+            <el-col :span="18">
+                <div style="position: fixed;width: 72%;">
+                    <div style="text-align: right;padding-right: 2%;margin-bottom: -32px;">
+                        <el-tooltip class="item" effect="dark" content="只保留当前" placement="bottom">
+                            <el-button type="primary" icon="delete2"></el-button>
+                        </el-tooltip>
+                        <el-tooltip class="item" effect="dark" content="关闭全部" placement="bottom">
+                            <el-button type="primary" icon="delete"></el-button>
+                        </el-tooltip>
+                    </div>
+                    <el-tabs v-model="editableTabsValue" type="card" closable @edit="handleTabsEdit" v-show="editableTabs.length > 0">
+                        <el-tab-pane :key="item.name" v-for="(item, index) in editableTabs" :label="item.title" :name="item.name">
+                            <el-table :data="tableData3" height="680" border style="width: 100%" :stripe="true" :highlight-current-row="true"
+                                @row-dblclick="selectrow">
+                                <el-table-column prop="fieldname" label="列名" width="190" sortable>
+                                </el-table-column>
+                                <el-table-column prop="identifying" label="标识" width="75">
+                                </el-table-column>
+                                <el-table-column prop="primarykey" label="主键" width="75">
+                                </el-table-column>
+                                <el-table-column prop="types" label="类型" width="125" sortable>
+                                </el-table-column>
+                                <el-table-column prop="ornull" label="允许空" width="85">
+                                </el-table-column>
+                                <el-table-column prop="defaults" label="默认值" width="125">
+                                </el-table-column>
+                                <el-table-column prop="describe" label="描述">
+                                </el-table-column>
+                            </el-table>
+                        </el-tab-pane>
+                    </el-tabs>
+                </div>
+            </el-col>
+        </el-row>
+    </div>
+    <script src="jquery.min.js"></script>
+    <script src="lodash.min.js"></script>
+    <script src="vue.js"></script>
+    <script src="index.js"></script>
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#app",
+            data: {
+                filterText: '', // 表名筛选文本
+                editableTabsValue: '0',
+                tabIndex: 0,
+                editableTabs: [],
+                dataTree: [],
+                tableData3: []
+            },
+            watch: {
+                filterText(val) { // 筛选规则
+                    this.$refs.tree2.filter(val);
+                }
+            },
+            methods: {
+                selectrow: function (row, event) {
+                    debugger;
+                },
+                loadtableinfo: function (data, node) {
+                    if (node.level == 2) {
+                        var ishaving = _.findIndex(this.editableTabs, function (tab) {
+                            return tab.title == data.label && tab.parenttitle == node.parent.label;
+                        });
+                        if (ishaving != -1) { return; }
+                        $.ajax({
+                            type: "post",
+                            url: "GetInfo.ashx",
+                            data: {
+                                "ajaxName": "GetTableInfo",
+                                "parentLabel": node.parent.label,
+                                "label": data.label
+                            },
+                            success: function (d) {
+                                let newTabName = ++vm.tabIndex + '';
+                                vm.editableTabs.push({
+                                    title: data.label,
+                                    parenttitle: node.parent.label,
+                                    name: newTabName,
+                                });
+                                vm.editableTabsValue = newTabName;
+                                vm.tableData3 = JSON.parse(d);
+                            }
+                        });
+                        return;
+                    }
+                },
+                loadchile: function (data, node) {
+                    if (node.level > 1) {
+                        return;
+                    }
+                    if (node.childNodes.length > 1) {
+                        return;
+                    }
+                    $.ajax({
+                        type: "post",
+                        url: "GetInfo.ashx",
+                        data: {
+                            "ajaxName": "GetTableList",
+                            "id": data.id,
+                            "label": data.label
+                        },
+                        success: function (d) {
+                            data.children = JSON.parse(d);
+                        }
+                    });
+                },
+                filterNode(value, data, node) { // 筛选规则
+                    if (!value) {
+                        return true;
+                    };
+                    return data.label.toLowerCase().indexOf(value.toLowerCase()) !== -1;
+                },
+                handleTabsEdit(targetName, action) {
+                    if (action === 'remove') {
+                        let tabs = this.editableTabs;
+                        let activeName = this.editableTabsValue;
+                        if (activeName === targetName) {
+                            tabs.forEach((tab, index) => {
+                                if (tab.name === targetName) {
+                                    let nextTab = tabs[index + 1] || tabs[index - 1];
+                                    if (nextTab) {
+                                        activeName = nextTab.name;
+                                    }
+                                }
+                            });
+                        }
+                        this.editableTabsValue = activeName;
+                        this.editableTabs = tabs.filter(tab => tab.name !== targetName);
+                    }
+                }
+            },
+            mounted: function () {
+                $.ajax({
+                    type: "post",
+                    url: "GetInfo.ashx",
+                    data: {
+                        "ajaxName": "GetDbList",
+                    },
+                    success: function (d) {
+                        vm.dataTree = JSON.parse(d);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
