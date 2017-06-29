@@ -35,3 +35,6 @@ F:\Solution\WebApplication1\WebApplication1\bin\Dapper.dll
 F:\Solution\WebApplication1\WebApplication1\bin\Newtonsoft.Json.dll
 F:\Solution\WebApplication1\WebApplication1\bin\Dapper.xml
 F:\Solution\WebApplication1\WebApplication1\bin\Newtonsoft.Json.xml
+C:\Users\sunch\Desktop\DbStructure\WebApplication1\obj\Debug\SqlTableInfo.csprojResolveAssemblyReference.cache
+C:\Users\sunch\Desktop\DbStructure\WebApplication1\obj\Debug\WebApplication1.dll
+C:\Users\sunch\Desktop\DbStructure\WebApplication1\obj\Debug\WebApplication1.pdb

@@ -20,6 +20,10 @@ namespace WebApplication1
             new Node(4, "查看后100条数据(只针对有自增键的表)")
         };
 
+        private object fieldType = new
+        {
+
+        };
 
         public void ProcessRequest(HttpContext context)
         {
@@ -34,7 +38,16 @@ namespace WebApplication1
             else if (context.Request["ajaxName"] == "GetTableInfo")
             {
                 GetTableInfo(context);
+            }else if(context.Request["ajaxName"]=="SubmitRow"){
+                SubmitRow(context);
             }
+        }
+
+        public void SubmitRow(HttpContext context)
+        {
+            
+            context.Response.Write(JsonConvert.SerializeObject(nodeList));
+            context.Response.End();
         }
 
         public void GetDbList(HttpContext context)
@@ -149,7 +162,10 @@ namespace WebApplication1
             context.Response.End();
         }
 
+
         public bool IsReusable => false;
+
+        public object FieldType { get => fieldType; set => fieldType = value; }
     }
 
     public class Node
@@ -184,6 +200,7 @@ namespace WebApplication1
 
     public class TableInfo
     {
+        public string newfield { get; set; }
         // ReSharper disable once InconsistentNaming
         public string fieldname { get; set; }
         // ReSharper disable once InconsistentNaming

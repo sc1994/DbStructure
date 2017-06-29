@@ -74,6 +74,39 @@
                 </div>
             </el-col>
         </el-row>
+        <el-dialog title="设置字段" :visible.sync="dialogFieldVisible">
+            <el-form :model="fieldInfo">
+                <el-form-item label="字段名" :label-width="formLabelWidth">
+                    <el-input v-model="fieldInfo.newfield" :value="fieldInfo.fieldname" style="width:40%"></el-input>
+                </el-form-item>
+                <el-form-item label="主键" :label-width="formLabelWidth">
+                    <el-switch on-text="" off-text="" v-model="fieldInfo.primarykey"></el-switch>
+                </el-form-item>
+                <el-form-item label="自增" :label-width="formLabelWidth">
+                    <el-switch on-text="" off-text="" v-model="fieldInfo.identifying"></el-switch>
+                </el-form-item>
+                <el-form-item label="数据类型" :label-width="formLabelWidth">
+                    <el-select v-model="fieldInfo.types" filterable placeholder="请选择数据类型">
+                        <el-option v-for="item in fieldTypeOptions" :key="item.value" :label="item.label" :value="item.value">
+                        </el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="允许空" :label-width="formLabelWidth">
+                    <el-switch on-text="" off-text="" v-model="fieldInfo.ornull"></el-switch>
+                </el-form-item>
+                <el-form-item label="默认值" :label-width="formLabelWidth" style="width:60%">
+                    <el-input v-model="fieldInfo.defaults"></el-input>
+                </el-form-item>
+                <el-form-item label="描述" :label-width="formLabelWidth">
+                    <el-input type="textarea" :rows="2" placeholder="请输入内容" v-model="fieldInfo.describe">
+                    </el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="dialogFieldVisible = false">取 消</el-button>
+                <el-button type="primary" :loading="btnload.state" @click="submitrow()">{{btnload.text}}</el-button>
+            </div>
+        </el-dialog>
     </div>
     <script src="jquery.min.js"></script>
     <script src="lodash.min.js"></script>
@@ -88,10 +121,30 @@
                 tabIndex: 0,
                 editableTabs: [],
                 dataTree: [],
+                dialogFieldVisible: false,
+                formLabelWidth: '130px',
+                fieldInfo: {
+                    fieldname: '',
+                    newfield: '',
+                    identifying: false,
+                    primarykey: false,
+                    types: '',
+                    ornull: false,
+                    defaults: '',
+                    describe: '',
+                },
+                btnload: {
+                    state: false,
+                    text: '提交'
+                },
+                fieldTypeOptions: [],
             },
             watch: {
                 filterText(val) { // 筛选规则
                     this.$refs.tree2.filter(val);
+                    if (!val) {
+                        this.closeAllTree(vm.$refs.tree2.$children);
+                    }
                 }
             },
             methods: {
@@ -100,13 +153,52 @@
                     var tab = _.find(that.editableTabs, function(e) {
                         return e.name == that.editableTabsValue;
                     })
-                    that.editableTabs = [tab];
+                    if (tab) {
+                        that.editableTabs = [tab];
+                    }
                 },
                 closeAll: function() {
                     this.editableTabs = [];
                 },
+                closeAllTree: function(treeList) {
+                    treeList.forEach((tree) => {
+                        if (tree.node && tree.node.childNodes && tree.node.childNodes.length > 0 && tree.node.expanded) {
+                            tree.node.expanded = false;
+                            this.closeAllTree(tree.node.childNodes);
+                        } else {
+                            if (tree.childNodes && tree.childNodes.length > 0 && tree.expanded) {
+                                tree.expanded = false;
+                                this.closeAllTree(tree.childNodes);
+                            }
+                        }
+                    })
+                },
                 selectrow: function(row, event) {
-                    debugger;
+                    this.dialogFieldVisible = true;
+                    this.fieldInfo = {
+                        newfield: row.fieldname,
+                        fieldname: row.fieldname,
+                        identifying: row.identifying && row.identifying.length > 0,
+                        primarykey: row.primarykey && row.primarykey.length > 0,
+                        ornull: row.ornull && row.ornull.length > 0,
+                        defaults: row.defaults,
+                        describe: row.describe,
+                        lengths: row.length,
+                        types: row.types
+                    };
+                },
+                submitrow: function() {
+                    $.ajax({
+                        type: "post",
+                        url: "",
+                        data: {
+
+                        },
+                        complete: function(d) {
+                            //d.responseText
+                        }
+                    });
+                    dialogFieldVisible = false;
                 },
                 loadtableinfo: function(data, node) {
                     if (node.level == 2) {
@@ -182,7 +274,7 @@
                         this.editableTabsValue = activeName;
                         this.editableTabs = tabs.filter(tab => tab.name !== targetName);
                     }
-                }
+                },
             },
             mounted: function() {
                 $.ajax({
