@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Reflection;
 using System.Web;
 using Dapper;
 using Newtonsoft.Json;
@@ -45,7 +46,8 @@ namespace WebApplication1
 
         public void SubmitRow(HttpContext context)
         {
-            
+            var nodeList = JsonConvert.DeserializeObject<TableInfo>(context.Request["rowData"]);
+
             context.Response.Write(JsonConvert.SerializeObject(nodeList));
             context.Response.End();
         }
@@ -165,7 +167,6 @@ namespace WebApplication1
 
         public bool IsReusable => false;
 
-        public object FieldType { get => fieldType; set => fieldType = value; }
     }
 
     public class Node

@@ -15,18 +15,18 @@
         transition: .2s;
         padding: 24px;
     }
-    
+
     div {
         display: block;
     }
-    
+
     body {
         font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, SimSun, sans-serif;
         overflow: auto;
         font-weight: 400;
         -webkit-font-smoothing: antialiased;
     }
-    
+
     .el-tabs__header {
         width: 88%;
     }
@@ -38,7 +38,8 @@
             <el-col :span="6">
                 <el-input placeholder="输入关键字进行过滤" v-model="filterText" style="margin-bottom: 20px">
                 </el-input>
-                <el-tree class="filter-tree" :data="dataTree" :props="{ children: 'children',label: 'label'}" :filter-node-method="filterNode" @node-expand="loadchile" @node-click="loadtableinfo" accordion ref="tree2" highlight-current :expand-on-click-node="false">
+                <el-tree class="filter-tree" :data="dataTree" :props="{ children: 'children',label: 'label'}" :filter-node-method="filterNode"
+                    @node-expand="loadchile" @node-click="loadtableinfo" accordion ref="tree2" highlight-current :expand-on-click-node="false">
                 </el-tree>
             </el-col>
             <el-col :span="18">
@@ -53,6 +54,16 @@
                     </div>
                     <el-tabs v-model="editableTabsValue" type="card" closable @edit="handleTabsEdit" v-show="editableTabs.length > 0">
                         <el-tab-pane :key="item.name" v-for="(item, index) in editableTabs" :label="item.title" :name="item.name">
+                            <div style="margin: 15px;">
+                                <el-input placeholder="修正表名" v-model="input5">
+                                    <el-button slot="append" icon="search"></el-button>
+                                </el-input>
+                            </div>
+                            <div style="margin: 15px;">
+                                <el-input placeholder="修改表描述" v-model="input5">
+                                    <el-button slot="append" icon="search"></el-button>
+                                </el-input>
+                            </div>
                             <el-table :data="item.tableData" height="680" border style="width: 100%" :stripe="true" :highlight-current-row="true" @row-dblclick="selectrow">
                                 <el-table-column prop="fieldname" label="列名" width="190" sortable>
                                 </el-table-column>
@@ -148,19 +159,19 @@
                 }
             },
             methods: {
-                closeTher: function() {
+                closeTher: function () {
                     var that = this;
-                    var tab = _.find(that.editableTabs, function(e) {
+                    var tab = _.find(that.editableTabs, function (e) {
                         return e.name == that.editableTabsValue;
                     })
                     if (tab) {
                         that.editableTabs = [tab];
                     }
                 },
-                closeAll: function() {
+                closeAll: function () {
                     this.editableTabs = [];
                 },
-                closeAllTree: function(treeList) {
+                closeAllTree: function (treeList) {
                     treeList.forEach((tree) => {
                         if (tree.node && tree.node.childNodes && tree.node.childNodes.length > 0 && tree.node.expanded) {
                             tree.node.expanded = false;
@@ -173,7 +184,7 @@
                         }
                     })
                 },
-                selectrow: function(row, event) {
+                selectrow: function (row, event) {
                     this.dialogFieldVisible = true;
                     this.fieldInfo = {
                         newfield: row.fieldname,
@@ -187,22 +198,24 @@
                         types: row.types
                     };
                 },
-                submitrow: function() {
+                submitrow: function () {
+                    var that = this;
                     $.ajax({
                         type: "post",
-                        url: "",
+                        url: "GetInfo.ashx",
                         data: {
-
+                            ajaxName: "SubmitRow",
+                            rowData: JSON.stringify(that.fieldInfo)
                         },
-                        complete: function(d) {
+                        complete: function (d) {
                             //d.responseText
                         }
                     });
                     dialogFieldVisible = false;
                 },
-                loadtableinfo: function(data, node) {
+                loadtableinfo: function (data, node) {
                     if (node.level == 2) {
-                        var ishaving = _.findIndex(this.editableTabs, function(tab) {
+                        var ishaving = _.findIndex(this.editableTabs, function (tab) {
                             return tab.title == data.label && tab.parenttitle == node.parent.label;
                         });
                         if (ishaving != -1) {
@@ -217,7 +230,7 @@
                                 "parentLabel": node.parent.label,
                                 "label": data.label
                             },
-                            success: function(d) {
+                            success: function (d) {
                                 let newTabName = ++vm.tabIndex + '';
                                 vm.editableTabs.push({
                                     title: data.label,
@@ -231,7 +244,7 @@
                         return;
                     }
                 },
-                loadchile: function(data, node) {
+                loadchile: function (data, node) {
                     if (node.level > 1) {
                         return;
                     }
@@ -246,7 +259,7 @@
                             "id": data.id,
                             "label": data.label
                         },
-                        success: function(d) {
+                        success: function (d) {
                             data.children = JSON.parse(d);
                         }
                     });
@@ -276,14 +289,14 @@
                     }
                 },
             },
-            mounted: function() {
+            mounted: function () {
                 $.ajax({
                     type: "post",
                     url: "GetInfo.ashx",
                     data: {
                         "ajaxName": "GetDbList",
                     },
-                    success: function(d) {
+                    success: function (d) {
                         vm.dataTree = JSON.parse(d);
                     }
                 });
