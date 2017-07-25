@@ -39,7 +39,9 @@ namespace WebApplication1
             else if (context.Request["ajaxName"] == "GetTableInfo")
             {
                 GetTableInfo(context);
-            }else if(context.Request["ajaxName"]=="SubmitRow"){
+            }
+            else if (context.Request["ajaxName"] == "SubmitRow")
+            {
                 SubmitRow(context);
             }
         }
@@ -78,22 +80,32 @@ namespace WebApplication1
         {
             var id = context.Request["id"];
             var label = context.Request["label"];
-            var tableList = DbClient.Query<string>($@"USE {label}
-                                                      SELECT d.name
-                                                      FROM   syscolumns a
-                                                             LEFT JOIN systypes b ON a.xtype = b.xusertype
-                                                             INNER JOIN sysobjects d ON a.id = d.id
-                                                                                        AND d.xtype = 'U'
-                                                                                        AND d.name <> 'dtproperties'
-                                                             LEFT JOIN syscomments e ON a.cdefault = e.id
-                                                             LEFT JOIN sys.extended_properties g ON a.id = g.major_id
-                                                                                                    AND a.colid = g.minor_id
-                                                      GROUP BY d.name
-	                                                  ORDER BY d.name;").ToList();
-            var nodeList = tableList.Select(x => new Node
+            var tableList = DbClient.Query<TableList>($@"USE {label}
+                                                      SELECT  TableName = CASE WHEN a.colorder=1 THEN d.name
+                                                                          ELSE ''
+                                                                     END,TableDescribe = CASE WHEN a.colorder=1 THEN ISNULL(f.value,'')
+                                                                                    ELSE ''
+                                                                               END
+                                                        FROM    syscolumns a
+                                                        LEFT   JOIN systypes b
+                                                                ON a.xusertype=b.xusertype
+                                                        INNER   JOIN sysobjects d
+                                                                ON a.id=d.id
+                                                                   AND d.xtype='U'
+                                                                   AND d.name<>'dtproperties'
+                                                        LEFT   JOIN syscomments e
+                                                                ON a.cdefault=e.id
+                                                        LEFT   JOIN sys.extended_properties g
+                                                                ON a.id=g.major_id
+                                                                   AND a.colid=g.minor_id
+                                                        LEFT   JOIN sys.extended_properties f
+                                                                ON d.id=f.major_id
+                                                                   AND f.minor_id=0 
+                                                        ORDER   BY a.id,a.colorder;").ToList();
+            var nodeList = tableList.Where(x => !string.IsNullOrEmpty(x.TableName.Trim())).Select(x => new Node
             {
                 id = Convert.ToInt32(id + tableList.IndexOf(x)),
-                label = x,
+                label = $"{x.TableName}{(string.IsNullOrEmpty(x.TableDescribe) ? "" : $"({x.TableDescribe})")}",
                 children = Operate
             });
             context.Response.Write(JsonConvert.SerializeObject(nodeList));
@@ -169,6 +181,15 @@ namespace WebApplication1
 
     }
 
+    /// <summary>
+    /// 表的 列表信息 包含表名和表描述
+    /// </summary>
+    public class TableList
+    {
+        public string TableName { get; set; } = string.Empty;
+        public string TableDescribe { get; set; } = string.Empty;
+    }
+
     public class Node
     {
         public Node()
@@ -201,27 +222,29 @@ namespace WebApplication1
 
     public class TableInfo
     {
-        public string newfield { get; set; }
         // ReSharper disable once InconsistentNaming
-        public string fieldname { get; set; }
+        public string tableName { get; set; } = string.Empty;
         // ReSharper disable once InconsistentNaming
-        public string identifying { get; set; }
+        public string tableDescribe { get; set; } = string.Empty;
         // ReSharper disable once InconsistentNaming
-        public string primarykey { get; set; }
+        public string newfield { get; set; } = string.Empty;
         // ReSharper disable once InconsistentNaming
-        public string types { get; set; }
+        public string fieldname { get; set; } = string.Empty;
         // ReSharper disable once InconsistentNaming
-        public string lengths { get; set; }
+        public string identifying { get; set; } = string.Empty;
         // ReSharper disable once InconsistentNaming
-        public string ornull { get; set; }
+        public string primarykey { get; set; } = string.Empty;
         // ReSharper disable once InconsistentNaming
-        public string defaults { get; set; }
+        public string types { get; set; } = string.Empty;
         // ReSharper disable once InconsistentNaming
-        public string describe { get; set; }
+        public string lengths { get; set; } = string.Empty;
+        // ReSharper disable once InconsistentNaming
+        public string ornull { get; set; } = string.Empty;
+        // ReSharper disable once InconsistentNaming
+        public string defaults { get; set; } = string.Empty;
+        // ReSharper disable once InconsistentNaming
+        public string describe { get; set; } = string.Empty;
     }
-
-
-
 
     public class DbClient
     {

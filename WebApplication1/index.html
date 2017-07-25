@@ -1,13 +1,4 @@
 ﻿<!DOCTYPE html>
-<html>
-
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title></title>
-    <link href="index.css" rel="stylesheet" />
-    <meta charset="utf-8" />
-</head>
-
 <style>
     .demo-block {
         border: 2px solid #ccc;
@@ -30,7 +21,22 @@
     .el-tabs__header {
         width: 88%;
     }
+
+    .table-describe {
+        float: left;
+        width: 60%;
+        margin-left: 10%;
+        margin-bottom: 15px
+    }
 </style>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title></title>
+    <link href="index.css" rel="stylesheet" />
+    <meta charset="utf-8" />
+</head>
 
 <body>
     <div id="app" class="demo-block demo-box demo-zh-CN demo-layout">
@@ -54,14 +60,14 @@
                     </div>
                     <el-tabs v-model="editableTabsValue" type="card" closable @edit="handleTabsEdit" v-show="editableTabs.length > 0">
                         <el-tab-pane :key="item.name" v-for="(item, index) in editableTabs" :label="item.title" :name="item.name">
-                            <div style="margin: 15px;">
-                                <el-input placeholder="修正表名" v-model="input5">
-                                    <el-button slot="append" icon="search"></el-button>
+                            <div class="table-describe" style="margin-left:3%;width:20%">
+                                <el-input placeholder="修正表名" v-model="item.tableName">
+                                    <el-button slot="append" icon="edit"></el-button>
                                 </el-input>
                             </div>
-                            <div style="margin: 15px;">
-                                <el-input placeholder="修改表描述" v-model="input5">
-                                    <el-button slot="append" icon="search"></el-button>
+                            <div class="table-describe">
+                                <el-input placeholder="修改表描述" v-model="item.tableDescribe">
+                                    <el-button slot="append" icon="edit"></el-button>
                                 </el-input>
                             </div>
                             <el-table :data="item.tableData" height="680" border style="width: 100%" :stripe="true" :highlight-current-row="true" @row-dblclick="selectrow">
@@ -142,13 +148,13 @@
                     types: '',
                     ornull: false,
                     defaults: '',
-                    describe: '',
+                    describe: ''
                 },
                 btnload: {
                     state: false,
                     text: '提交'
                 },
-                fieldTypeOptions: [],
+                fieldTypeOptions: []
             },
             watch: {
                 filterText(val) { // 筛选规则
@@ -159,21 +165,22 @@
                 }
             },
             methods: {
-                closeTher: function () {
+                closeTher() { // 关闭其他
                     var that = this;
                     var tab = _.find(that.editableTabs, function (e) {
-                        return e.name == that.editableTabsValue;
-                    })
+                        return e.name === that.editableTabsValue;
+                    });
                     if (tab) {
                         that.editableTabs = [tab];
                     }
                 },
-                closeAll: function () {
+                closeAll() { // 关闭全部
                     this.editableTabs = [];
                 },
-                closeAllTree: function (treeList) {
+                closeAllTree(treeList) { // 折叠全部树结构
                     treeList.forEach((tree) => {
-                        if (tree.node && tree.node.childNodes && tree.node.childNodes.length > 0 && tree.node.expanded) {
+                        if (tree.node && tree.node.childNodes && tree.node.childNodes.length > 0 &&
+                            tree.node.expanded) {
                             tree.node.expanded = false;
                             this.closeAllTree(tree.node.childNodes);
                         } else {
@@ -182,9 +189,9 @@
                                 this.closeAllTree(tree.childNodes);
                             }
                         }
-                    })
+                    });
                 },
-                selectrow: function (row, event) {
+                selectrow(row) { // 双击选中一行 ,以供修改字段属性
                     this.dialogFieldVisible = true;
                     this.fieldInfo = {
                         newfield: row.fieldname,
@@ -198,7 +205,7 @@
                         types: row.types
                     };
                 },
-                submitrow: function () {
+                submitrow() { // 提交修改后的字段属性 //todo
                     var that = this;
                     $.ajax({
                         type: "post",
@@ -211,16 +218,25 @@
                             //d.responseText
                         }
                     });
-                    dialogFieldVisible = false;
+                    this.dialogFieldVisible = false;
                 },
-                loadtableinfo: function (data, node) {
-                    if (node.level == 2) {
+                loadtableinfo(data, node) { // 获取表信息
+                    var that = this;
+                    if (node.level === 2) {
                         var ishaving = _.findIndex(this.editableTabs, function (tab) {
-                            return tab.title == data.label && tab.parenttitle == node.parent.label;
+                            return tab.title === data.label && tab.parenttitle === node.parent.label;
                         });
-                        if (ishaving != -1) {
+                        if (ishaving !== -1) {
                             this.editableTabsValue = this.editableTabs[ishaving].name;
                             return;
+                        }
+                        var tableName, tableDescribe;
+                        if (data.label.indexOf("(") > -1) {
+                            tableName = data.label.split("(")[0];
+                            tableDescribe = data.label.split("(")[1].replace(")", "");
+                        } else {
+                            tableName = data.label;
+                            tableDescribe = "";
                         }
                         $.ajax({
                             type: "post",
@@ -228,23 +244,25 @@
                             data: {
                                 "ajaxName": "GetTableInfo",
                                 "parentLabel": node.parent.label,
-                                "label": data.label
+                                "label": tableName
                             },
                             success: function (d) {
-                                let newTabName = ++vm.tabIndex + '';
-                                vm.editableTabs.push({
+                                let newTabName = ++that.tabIndex + '';
+                                that.editableTabs.push({
                                     title: data.label,
                                     parenttitle: node.parent.label,
                                     name: newTabName,
-                                    tableData: JSON.parse(d)
+                                    tableData: JSON.parse(d),
+                                    tableName: tableName,
+                                    tableDescribe: tableDescribe
                                 });
-                                vm.editableTabsValue = newTabName;
+                                that.editableTabsValue = newTabName;
                             }
                         });
                         return;
                     }
                 },
-                loadchile: function (data, node) {
+                loadchile(data, node) {
                     if (node.level > 1) {
                         return;
                     }
@@ -264,7 +282,7 @@
                         }
                     });
                 },
-                filterNode(value, data, node) { // 筛选规则
+                filterNode(value, data) { // 筛选规则
                     if (!value) {
                         return true;
                     };
@@ -287,17 +305,18 @@
                         this.editableTabsValue = activeName;
                         this.editableTabs = tabs.filter(tab => tab.name !== targetName);
                     }
-                },
+                }
             },
-            mounted: function () {
+            mounted() {
+                var that = this;
                 $.ajax({
                     type: "post",
                     url: "GetInfo.ashx",
                     data: {
-                        "ajaxName": "GetDbList",
+                        "ajaxName": "GetDbList"
                     },
                     success: function (d) {
-                        vm.dataTree = JSON.parse(d);
+                        that.dataTree = JSON.parse(d);
                     }
                 });
             }
