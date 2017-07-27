@@ -102,6 +102,7 @@
     <Reference Include="System.EnterpriseServices" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="index.js" />
     <Content Include="packages.config" />
     <Content Include="ApplicationInsights.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -117,7 +118,7 @@
   <ItemGroup>
     <Content Include="index.css" />
     <Content Include="index.html" />
-    <Content Include="index.js" />
+    <Content Include="element.js" />
     <Content Include="jquery.min.js" />
     <Content Include="lodash.min.js" />
     <Content Include="vue.js" />

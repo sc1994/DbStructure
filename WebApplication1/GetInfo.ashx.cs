@@ -4,7 +4,6 @@ using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
-using System.Reflection;
 using System.Web;
 using Dapper;
 using Newtonsoft.Json;
@@ -13,37 +12,59 @@ namespace WebApplication1
 {
     public class GetInfo : IHttpHandler
     {
-        public List<Node> Operate = new List<Node>
-        {
-            new Node(1, "编辑表结构"),
-            new Node(2, "查看前一百条数据"),
-            new Node(3, "设置条件查看数据"),
-            new Node(4, "查看后100条数据(只针对有自增键的表)")
-        };
-
-        private object fieldType = new
-        {
-
-        };
-
         public void ProcessRequest(HttpContext context)
         {
-            if (context.Request["ajaxName"] == "GetDbList")
+            var name = context.Request["ajaxName"];
+            if (name == "GetDbList")
             {
                 GetDbList(context);
             }
-            else if (context.Request["ajaxName"] == "GetTableList")
+            else if (name == "GetTableList")
             {
                 GetTableList(context);
             }
-            else if (context.Request["ajaxName"] == "GetTableInfo")
+            else if (name == "GetTableInfo")
             {
                 GetTableInfo(context);
             }
-            else if (context.Request["ajaxName"] == "SubmitRow")
+            else if (name == "SubmitRow")
             {
                 SubmitRow(context);
             }
+            else if (name == "EditTableDescribe")
+            {
+                EditTableDescribe(context);
+            }
+        }
+
+        public void EditTableDescribe(HttpContext context)
+        {
+            var name = context.Request["tableName"];
+            var describe = context.Request["tableDescribe"];
+            // todo 因为无法判断当前是否已有描述 出此下策 目前是先执行更新出现异常再尝试添加
+            // 执行 更新
+            try
+            {
+                DbClient.Excute($@"USE ThreeArriveAction
+                                  EXEC sp_updateextendedproperty @name = N'MS_Description',
+                                                                 @value = N'{describe}',
+                                                                 @level0type = N'user',
+                                                                 @level0name = N'dbo',
+                                                                 @level1type = N'table',
+                                                                 @level1name = N'{name}';");
+            }
+            catch (Exception)
+            {
+                // 执行 添加
+                DbClient.Excute($@"USE ThreeArriveAction
+                                  EXEC sp_addextendedproperty @name = N'MS_Description',
+                                                                 @value = N'{describe}',
+                                                                 @level0type = N'user',
+                                                                 @level0name = N'dbo',
+                                                                 @level1type = N'table',
+                                                                 @level1name = N'{name}';");
+            }
+
         }
 
         public void SubmitRow(HttpContext context)
@@ -176,6 +197,15 @@ namespace WebApplication1
             context.Response.End();
         }
 
+        public List<Node> Operate = new List<Node>
+                                    {
+                                        
+                                    };
+
+        private object _fieldType = new
+        {
+
+        };
 
         public bool IsReusable => false;
 

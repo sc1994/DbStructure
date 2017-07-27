@@ -25,7 +25,7 @@
     .table-describe {
         float: left;
         width: 60%;
-        margin-left: 10%;
+        margin-left: 6%;
         margin-bottom: 15px
     }
 </style>
@@ -45,7 +45,7 @@
                 <el-input placeholder="输入关键字进行过滤" v-model="filterText" style="margin-bottom: 20px">
                 </el-input>
                 <el-tree class="filter-tree" :data="dataTree" :props="{ children: 'children',label: 'label'}" :filter-node-method="filterNode"
-                    @node-expand="loadchile" @node-click="loadtableinfo" accordion ref="tree2" highlight-current :expand-on-click-node="false">
+                    @node-expand="loadchile" @node-click="loadtableinfo" accordion ref="tree2" highlight-current >
                 </el-tree>
             </el-col>
             <el-col :span="18">
@@ -60,14 +60,14 @@
                     </div>
                     <el-tabs v-model="editableTabsValue" type="card" closable @edit="handleTabsEdit" v-show="editableTabs.length > 0">
                         <el-tab-pane :key="item.name" v-for="(item, index) in editableTabs" :label="item.title" :name="item.name">
-                            <div class="table-describe" style="margin-left:3%;width:20%">
+                            <div class="table-describe" style="margin-left:3%;width:27%">
                                 <el-input placeholder="修正表名" v-model="item.tableName">
                                     <el-button slot="append" icon="edit"></el-button>
                                 </el-input>
                             </div>
                             <div class="table-describe">
                                 <el-input placeholder="修改表描述" v-model="item.tableDescribe">
-                                    <el-button slot="append" icon="edit"></el-button>
+                                    <el-button slot="append" icon="edit" @click="editTableDescribe(item.tableName,item.tableDescribe)"></el-button>
                                 </el-input>
                             </div>
                             <el-table :data="item.tableData" height="680" border style="width: 100%" :stripe="true" :highlight-current-row="true" @row-dblclick="selectrow">
@@ -128,200 +128,8 @@
     <script src="jquery.min.js"></script>
     <script src="lodash.min.js"></script>
     <script src="vue.js"></script>
+    <script src="element.js"></script>
     <script src="index.js"></script>
-    <script type="text/javascript">
-        var vm = new Vue({
-            el: "#app",
-            data: {
-                filterText: '', // 表名筛选文本
-                editableTabsValue: '0',
-                tabIndex: 0,
-                editableTabs: [],
-                dataTree: [],
-                dialogFieldVisible: false,
-                formLabelWidth: '130px',
-                fieldInfo: {
-                    fieldname: '',
-                    newfield: '',
-                    identifying: false,
-                    primarykey: false,
-                    types: '',
-                    ornull: false,
-                    defaults: '',
-                    describe: ''
-                },
-                btnload: {
-                    state: false,
-                    text: '提交'
-                },
-                fieldTypeOptions: []
-            },
-            watch: {
-                filterText(val) { // 筛选规则
-                    this.$refs.tree2.filter(val);
-                    if (!val) {
-                        this.closeAllTree(vm.$refs.tree2.$children);
-                    }
-                }
-            },
-            methods: {
-                closeTher() { // 关闭其他
-                    var that = this;
-                    var tab = _.find(that.editableTabs, function (e) {
-                        return e.name === that.editableTabsValue;
-                    });
-                    if (tab) {
-                        that.editableTabs = [tab];
-                    }
-                },
-                closeAll() { // 关闭全部
-                    this.editableTabs = [];
-                },
-                closeAllTree(treeList) { // 折叠全部树结构
-                    treeList.forEach((tree) => {
-                        if (tree.node && tree.node.childNodes && tree.node.childNodes.length > 0 &&
-                            tree.node.expanded) {
-                            tree.node.expanded = false;
-                            this.closeAllTree(tree.node.childNodes);
-                        } else {
-                            if (tree.childNodes && tree.childNodes.length > 0 && tree.expanded) {
-                                tree.expanded = false;
-                                this.closeAllTree(tree.childNodes);
-                            }
-                        }
-                    });
-                },
-                selectrow(row) { // 双击选中一行 ,以供修改字段属性
-                    this.dialogFieldVisible = true;
-                    this.fieldInfo = {
-                        newfield: row.fieldname,
-                        fieldname: row.fieldname,
-                        identifying: row.identifying && row.identifying.length > 0,
-                        primarykey: row.primarykey && row.primarykey.length > 0,
-                        ornull: row.ornull && row.ornull.length > 0,
-                        defaults: row.defaults,
-                        describe: row.describe,
-                        lengths: row.length,
-                        types: row.types
-                    };
-                },
-                submitrow() { // 提交修改后的字段属性 //todo
-                    var that = this;
-                    $.ajax({
-                        type: "post",
-                        url: "GetInfo.ashx",
-                        data: {
-                            ajaxName: "SubmitRow",
-                            rowData: JSON.stringify(that.fieldInfo)
-                        },
-                        complete: function (d) {
-                            //d.responseText
-                        }
-                    });
-                    this.dialogFieldVisible = false;
-                },
-                loadtableinfo(data, node) { // 获取表信息
-                    var that = this;
-                    if (node.level === 2) {
-                        var ishaving = _.findIndex(this.editableTabs, function (tab) {
-                            return tab.title === data.label && tab.parenttitle === node.parent.label;
-                        });
-                        if (ishaving !== -1) {
-                            this.editableTabsValue = this.editableTabs[ishaving].name;
-                            return;
-                        }
-                        var tableName, tableDescribe;
-                        if (data.label.indexOf("(") > -1) {
-                            tableName = data.label.split("(")[0];
-                            tableDescribe = data.label.split("(")[1].replace(")", "");
-                        } else {
-                            tableName = data.label;
-                            tableDescribe = "";
-                        }
-                        $.ajax({
-                            type: "post",
-                            url: "GetInfo.ashx",
-                            data: {
-                                "ajaxName": "GetTableInfo",
-                                "parentLabel": node.parent.label,
-                                "label": tableName
-                            },
-                            success: function (d) {
-                                let newTabName = ++that.tabIndex + '';
-                                that.editableTabs.push({
-                                    title: data.label,
-                                    parenttitle: node.parent.label,
-                                    name: newTabName,
-                                    tableData: JSON.parse(d),
-                                    tableName: tableName,
-                                    tableDescribe: tableDescribe
-                                });
-                                that.editableTabsValue = newTabName;
-                            }
-                        });
-                        return;
-                    }
-                },
-                loadchile(data, node) {
-                    if (node.level > 1) {
-                        return;
-                    }
-                    if (node.childNodes.length > 1) {
-                        return;
-                    }
-                    $.ajax({
-                        type: "post",
-                        url: "GetInfo.ashx",
-                        data: {
-                            "ajaxName": "GetTableList",
-                            "id": data.id,
-                            "label": data.label
-                        },
-                        success: function (d) {
-                            data.children = JSON.parse(d);
-                        }
-                    });
-                },
-                filterNode(value, data) { // 筛选规则
-                    if (!value) {
-                        return true;
-                    };
-                    return data.label.toLowerCase().indexOf(value.toLowerCase()) !== -1;
-                },
-                handleTabsEdit(targetName, action) {
-                    if (action === 'remove') {
-                        let tabs = this.editableTabs;
-                        let activeName = this.editableTabsValue;
-                        if (activeName === targetName) {
-                            tabs.forEach((tab, index) => {
-                                if (tab.name === targetName) {
-                                    let nextTab = tabs[index + 1] || tabs[index - 1];
-                                    if (nextTab) {
-                                        activeName = nextTab.name;
-                                    }
-                                }
-                            });
-                        }
-                        this.editableTabsValue = activeName;
-                        this.editableTabs = tabs.filter(tab => tab.name !== targetName);
-                    }
-                }
-            },
-            mounted() {
-                var that = this;
-                $.ajax({
-                    type: "post",
-                    url: "GetInfo.ashx",
-                    data: {
-                        "ajaxName": "GetDbList"
-                    },
-                    success: function (d) {
-                        that.dataTree = JSON.parse(d);
-                    }
-                });
-            }
-        });
-    </script>
 </body>
 
 </html>
