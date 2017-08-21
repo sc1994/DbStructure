@@ -36,13 +36,17 @@
     methods: {
         editTableDescribe(tableName, tableDescribe) {
             var that = this;
+            var tab = _.find(that.editableTabs, function (e) {
+                return e.name === that.editableTabsValue;
+            });
             $.ajax({
                 type: "post",
                 url: "GetInfo.ashx",
                 data: {
                     ajaxName: "EditTableDescribe",
                     tableName: tableName,
-                    tableDescribe: tableDescribe
+                    tableDescribe: tableDescribe,
+                    dbName: tab.parenttitle
                 },
                 complete: function () {
                     that.$message('表描述更新成功, 请勿重复操作');

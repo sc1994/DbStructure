@@ -41,11 +41,12 @@ namespace WebApplication1
         {
             var name = context.Request["tableName"];
             var describe = context.Request["tableDescribe"];
+            var dbName = context.Request["dbName"];
             // todo 因为无法判断当前是否已有描述 出此下策 目前是先执行更新出现异常再尝试添加
             // 执行 更新
             try
             {
-                DbClient.Excute($@"USE ThreeArriveAction
+                DbClient.Excute($@"USE {dbName}
                                   EXEC sp_updateextendedproperty @name = N'MS_Description',
                                                                  @value = N'{describe}',
                                                                  @level0type = N'user',
@@ -56,7 +57,7 @@ namespace WebApplication1
             catch (Exception)
             {
                 // 执行 添加
-                DbClient.Excute($@"USE ThreeArriveAction
+                DbClient.Excute($@"USE {dbName}
                                   EXEC sp_addextendedproperty @name = N'MS_Description',
                                                                  @value = N'{describe}',
                                                                  @level0type = N'user',
@@ -189,7 +190,7 @@ namespace WebApplication1
                 fieldname = x.fieldname,
                 identifying = x.identifying,
                 describe = x.describe,
-                defaults = x.defaults.Trim('(').Trim(')').Trim('\''),
+                defaults = x.defaults.Replace("(", "").Replace(")", "").Replace("'", ""),
                 primarykey = x.primarykey,
                 ornull = x.ornull,
                 types = x.types.ToLower().Contains("char") ? $"{x.types}({x.lengths})" : x.types,
@@ -198,9 +199,9 @@ namespace WebApplication1
         }
 
         public List<Node> Operate = new List<Node>
-                                    {
-                                        
-                                    };
+        {
+
+        };
 
         private object _fieldType = new
         {
