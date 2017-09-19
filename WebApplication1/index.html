@@ -28,13 +28,14 @@
         margin-left: 6%;
         margin-bottom: 15px
     }
+
 </style>
 <html>
 
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title></title>
-    <link href="index.css" rel="stylesheet" />
+    <link href="Content/index.css" rel="stylesheet" />
     <meta charset="utf-8" />
 </head>
 
@@ -45,7 +46,7 @@
                 <el-input placeholder="输入关键字进行过滤" v-model="filterText" style="margin-bottom: 20px">
                 </el-input>
                 <el-tree class="filter-tree" :data="dataTree" :props="{ children: 'children',label: 'label'}" :filter-node-method="filterNode"
-                    @node-expand="loadchile" @node-click="loadtableinfo" accordion ref="tree2" highlight-current >
+                    @node-expand="loadchile" @node-click="loadtableinfo" accordion ref="tree2" highlight-current>
                 </el-tree>
             </el-col>
             <el-col :span="18">
@@ -125,10 +126,10 @@
             </div>
         </el-dialog>
     </div>
-    <script src="jquery.min.js"></script>
-    <script src="lodash.min.js"></script>
-    <script src="vue.js"></script>
-    <script src="element.js"></script>
+    <script src="Script/jquery.min.js"></script>
+    <script src="Script/lodash.min.js"></script>
+    <script src="Script/vue.js"></script>
+    <script src="Script/element.js"></script>
     <script src="index.js"></script>
 </body>
 

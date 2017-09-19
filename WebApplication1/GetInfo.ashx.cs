@@ -1,17 +1,29 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.Data.SqlClient;
-using System.Linq;
 using System.Web;
-using Dapper;
+using System.Linq;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace WebApplication1
 {
     public class GetInfo : IHttpHandler
     {
+        #region 私属性
+        private List<Node> Operate { get; } = new List<Node>
+                                             {
+                                                 new Node
+                                                 {
+                                                     label = "数据展示"
+                                                 }
+                                             };
+
+        // 数据类型 用于扩展
+        //private object _fieldType = new
+        //{
+
+        //}; 
+        #endregion
+
         public void ProcessRequest(HttpContext context)
         {
             var name = context.Request["ajaxName"];
@@ -37,15 +49,20 @@ namespace WebApplication1
             }
         }
 
+        #region 编辑表描述
+        /// <summary>
+        /// 编辑表描述
+        /// </summary>
+        /// <param name="context"></param>
         public void EditTableDescribe(HttpContext context)
         {
             var name = context.Request["tableName"];
             var describe = context.Request["tableDescribe"];
             var dbName = context.Request["dbName"];
             // todo 因为无法判断当前是否已有描述 出此下策 目前是先执行更新出现异常再尝试添加
-            // 执行 更新
             try
             {
+                // 执行 更新
                 DbClient.Excute($@"USE {dbName}
                                   EXEC sp_updateextendedproperty @name = N'MS_Description',
                                                                  @value = N'{describe}',
@@ -66,8 +83,14 @@ namespace WebApplication1
                                                                  @level1name = N'{name}';");
             }
 
-        }
+        } 
+        #endregion
 
+        #region 编辑字段信息 todo 暂未实现
+        /// <summary>
+        /// 编辑字段信息 todo 暂未实现
+        /// </summary>
+        /// <param name="context"></param>
         public void SubmitRow(HttpContext context)
         {
             var nodeList = JsonConvert.DeserializeObject<TableInfo>(context.Request["rowData"]);
@@ -75,13 +98,19 @@ namespace WebApplication1
             context.Response.Write(JsonConvert.SerializeObject(nodeList));
             context.Response.End();
         }
+        #endregion
 
+        #region 获取全部的库
+        /// <summary>
+        /// 获取全部的库
+        /// </summary>
+        /// <param name="context"></param>
         public void GetDbList(HttpContext context)
         {
             var dbList = DbClient.Query<string>(@"SELECT name
-                                                           FROM   master.dbo.sysdatabases
-                                                           WHERE  name NOT IN ( 'master', 'tempdb', 'model', 'msdb' )
-                                                           ORDER BY name;").ToList();
+                                                  FROM   master.dbo.sysdatabases
+                                                  WHERE  name NOT IN ( 'master', 'tempdb', 'model', 'msdb' )
+                                                  ORDER BY name;").ToList();
 
             var nodeList = dbList.Select(x => new Node
             {
@@ -96,13 +125,19 @@ namespace WebApplication1
             });
             context.Response.Write(JsonConvert.SerializeObject(nodeList));
             context.Response.End();
-        }
+        } 
+        #endregion
 
+        #region 获取库下全部表
+		/// <summary>
+        /// 获取库下全部表
+        /// </summary>
+        /// <param name="context"></param>
         public void GetTableList(HttpContext context)
         {
             var id = context.Request["id"];
             var label = context.Request["label"];
-            var tableList = DbClient.Query<TableList>($@"USE {label}
+            var tableList = DbClient.Query<TableBaseInfo>($@"USE {label}
                                                       SELECT  TableName = CASE WHEN a.colorder=1 THEN d.name
                                                                           ELSE ''
                                                                      END,TableDescribe = CASE WHEN a.colorder=1 THEN ISNULL(f.value,'')
@@ -133,7 +168,13 @@ namespace WebApplication1
             context.Response.Write(JsonConvert.SerializeObject(nodeList));
             context.Response.End();
         }
+        #endregion
 
+        #region 获取表详细信息
+        /// <summary>
+        /// 获取表详细信息
+        /// </summary>
+        /// <param name="context"></param>
         public void GetTableInfo(HttpContext context)
         {
             var parentLabel = context.Request["parentLabel"];
@@ -196,181 +237,9 @@ namespace WebApplication1
                 types = x.types.ToLower().Contains("char") ? $"{x.types}({x.lengths})" : x.types,
             })));
             context.Response.End();
-        }
-
-        public List<Node> Operate = new List<Node>
-        {
-
-        };
-
-        private object _fieldType = new
-        {
-
-        };
+        } 
+        #endregion
 
         public bool IsReusable => false;
-
-    }
-
-    /// <summary>
-    /// 表的 列表信息 包含表名和表描述
-    /// </summary>
-    public class TableList
-    {
-        public string TableName { get; set; } = string.Empty;
-        public string TableDescribe { get; set; } = string.Empty;
-    }
-
-    public class Node
-    {
-        public Node()
-        {
-
-        }
-
-        public Node(int id, string label)
-        {
-            this.id = id;
-            this.label = label;
-        }
-
-        /// <summary>
-        /// 各个节点之前的区分
-        /// </summary>
-        // ReSharper disable once InconsistentNaming
-        public int id { get; set; }
-        /// <summary>
-        /// 节点名称
-        /// </summary>
-        // ReSharper disable once InconsistentNaming
-        public string label { get; set; }
-        /// <summary>
-        /// 子节点
-        /// </summary>
-        // ReSharper disable once InconsistentNaming
-        public List<Node> children { get; set; }
-    }
-
-    public class TableInfo
-    {
-        // ReSharper disable once InconsistentNaming
-        public string tableName { get; set; } = string.Empty;
-        // ReSharper disable once InconsistentNaming
-        public string tableDescribe { get; set; } = string.Empty;
-        // ReSharper disable once InconsistentNaming
-        public string newfield { get; set; } = string.Empty;
-        // ReSharper disable once InconsistentNaming
-        public string fieldname { get; set; } = string.Empty;
-        // ReSharper disable once InconsistentNaming
-        public string identifying { get; set; } = string.Empty;
-        // ReSharper disable once InconsistentNaming
-        public string primarykey { get; set; } = string.Empty;
-        // ReSharper disable once InconsistentNaming
-        public string types { get; set; } = string.Empty;
-        // ReSharper disable once InconsistentNaming
-        public string lengths { get; set; } = string.Empty;
-        // ReSharper disable once InconsistentNaming
-        public string ornull { get; set; } = string.Empty;
-        // ReSharper disable once InconsistentNaming
-        public string defaults { get; set; } = string.Empty;
-        // ReSharper disable once InconsistentNaming
-        public string describe { get; set; } = string.Empty;
-    }
-
-    public class DbClient
-    {
-
-        public static IEnumerable<T> Query<T>(string sql, object param = null)
-        {
-            if (string.IsNullOrEmpty(sql))
-            {
-                throw new ArgumentNullException(nameof(sql));
-            }
-            using (IDbConnection con = DataSource.GetConnection())
-            {
-                IEnumerable<T> tList = con.Query<T>(sql, param);
-                con.Close();
-                return tList;
-            }
-        }
-
-        public static int Excute(string sql, object param = null, IDbTransaction transaction = null)
-        {
-            if (string.IsNullOrEmpty(sql))
-            {
-                throw new ArgumentNullException(nameof(sql));
-            }
-            using (IDbConnection con = DataSource.GetConnection())
-            {
-                return con.Execute(sql, param, transaction);
-            }
-        }
-        public static T ExecuteScalar<T>(string sql, object param = null)
-        {
-            if (string.IsNullOrEmpty(sql))
-            {
-                throw new ArgumentNullException(nameof(sql));
-            }
-            using (IDbConnection con = DataSource.GetConnection())
-            {
-                return con.ExecuteScalar<T>(sql, param);
-            }
-        }
-
-        public static T ExecuteScalarProc<T>(string strProcName, object param = null)
-        {
-            using (IDbConnection con = DataSource.GetConnection())
-            {
-                return (T)con.ExecuteScalar(strProcName, param, commandType: CommandType.StoredProcedure);
-            }
-        }
-
-        /// <summary>
-        /// 执行带参数的存储过程(查询)
-        /// </summary>
-        /// <param name="strProcName"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
-        public static IEnumerable<T> ExecuteQueryProc<T>(string strProcName, object param = null)
-        {
-            using (IDbConnection con = DataSource.GetConnection())
-            {
-                IEnumerable<T> tList = con.Query<T>(strProcName, param, commandType: CommandType.StoredProcedure);
-                con.Close();
-                return tList;
-            }
-        }
-
-        /// <summary>
-        /// 执行带参数的存储过程
-        /// </summary>
-        /// <param name="strProcName"></param>
-        /// <param name="param"></param>
-        /// <returns></returns>
-        public static int ExecuteProc(string strProcName, object param = null)
-        {
-            try
-            {
-                using (IDbConnection con = DataSource.GetConnection())
-                {
-                    return con.Execute(strProcName, param, commandType: CommandType.StoredProcedure);
-                }
-            }
-            catch (Exception)
-            {
-                return 0;
-            }
-        }
-    }
-
-    public class DataSource
-    {
-        public static string ConnString = ConfigurationManager.ConnectionStrings["DBS"].ConnectionString;
-        public static IDbConnection GetConnection()
-        {
-            if (string.IsNullOrEmpty(ConnString))
-                throw new NoNullAllowedException(nameof(ConnString));
-            return new SqlConnection(ConnString);
-        }
     }
 }
